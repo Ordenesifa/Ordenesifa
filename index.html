@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Órdenes IFA — Balanz</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #ffffff; --bg2: #f5f5f3; --bg3: #efefec;
+      --text: #1a1a18; --text2: #6b6b67; --text3: #9b9b97;
+      --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+      --danger-bg: #FCEBEB; --danger-text: #A32D2D;
+      --success-bg: #EAF3DE; --success-text: #3B6D11;
+      --radius: 8px; --radius-lg: 12px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a; --bg2: #262624; --bg3: #2e2e2b;
+        --text: #f0f0ee; --text2: #a0a09c; --text3: #6b6b67;
+        --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+        --danger-bg: #501313; --danger-text: #F09595;
+        --success-bg: #173404; --success-text: #C0DD97;
+      }
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; color: var(--text); background: var(--bg3); min-height: 100vh; }
+    .hidden { display: none !important; }
+
+    #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .login-box { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; width: 300px; text-align: center; }
+    .login-box h1 { font-size: 20px; font-weight: 500; margin-bottom: 6px; }
+    .login-box p { font-size: 13px; color: var(--text2); margin-bottom: 1.5rem; }
+    .login-box input { width: 100%; padding: 10px 12px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 15px; text-align: center; letter-spacing: 3px; margin-bottom: 10px; outline: none; }
+    .login-box input:focus { box-shadow: 0 0 0 3px rgba(99,153,34,0.2); }
+    .login-error { font-size: 12px; color: var(--danger-text); margin-top: 6px; }
+    .ti-lock-icon { font-size: 32px; color: var(--text2); display: block; margin-bottom: 12px; }
+
+    #app { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+    .app-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 0.5px solid var(--border); }
+    .app-header h1 { font-size: 20px; font-weight: 500; }
+    .app-header-actions { display: flex; gap: 8px; align-items: center; }
+
+    .status-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 1.5rem; padding: 8px 12px; background: var(--bg2); border-radius: var(--radius); font-size: 12px; color: var(--text2); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #639922; display: inline-block; flex-shrink: 0; }
+    .status-dot.loading { background: #BA7517; }
+    .next-refresh { margin-left: auto; font-size: 11px; color: var(--text3); }
+
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 1.5rem; }
+    .tab { padding: 6px 16px; border-radius: var(--radius); font-size: 13px; cursor: pointer; border: 0.5px solid transparent; color: var(--text2); background: transparent; }
+    .tab.active { background: var(--bg2); border-color: var(--border); color: var(--text); font-weight: 500; }
+    .counter-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 9px; background: var(--danger-bg); color: var(--danger-text); font-size: 11px; font-weight: 500; padding: 0 5px; margin-left: 6px; }
+    .counter-badge.neutral { background: var(--bg2); color: var(--text2); }
+
+    .table-wrap { overflow-x: auto; background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th { font-size: 11px; font-weight: 500; color: var(--text2); text-align: left; padding: 10px 10px; border-bottom: 0.5px solid var(--border); text-transform: uppercase; letter-spacing: .5px; background: var(--bg2); }
+    th:first-child { border-radius: var(--radius-lg) 0 0 0; }
+    th:last-child { border-radius: 0 var(--radius-lg) 0 0; }
+    td { padding: 10px 10px; border-bottom: 0.5px solid var(--border); font-size: 13px; vertical-align: middle; color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(0,0,0,0.02); }
+
+    .badge-buy { background: var(--success-bg); color: var(--success-text); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+    .badge-sell { background: var(--danger-bg); color: var(--danger-text); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+
+    .color-picker-wrap { display: flex; gap: 5px; align-items: center; }
+    .color-opt { width: 18px; height: 18px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; display: inline-block; transition: transform .1s; }
+    .color-opt:hover { transform: scale(1.2); }
+    .color-opt.selected { border-color: var(--text); }
+
+    .done-btn { padding: 5px 12px; font-size: 12px; cursor: pointer; border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent; color: var(--text); display: inline-flex; align-items: center; gap: 4px; }
+    .done-btn:hover { background: var(--success-bg); color: var(--success-text); border-color: var(--success-text); }
+
+    btn, button { padding: 7px 14px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent; color: var(--text); cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+    button:hover { background: var(--bg2); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+    button.primary:hover { opacity: .85; }
+
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text2); font-size: 13px; }
+    .empty-state i { font-size: 36px; display: block; margin-bottom: 10px; color: var(--text3); }
+    .hist-time { font-size: 11px; color: var(--text3); }
+  </style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <i class="ti ti-lock ti-lock-icon" aria-hidden="true"></i>
+    <h1>Órdenes IFA</h1>
+    <p>Ingresá la clave de acceso</p>
+    <input type="password" id="pwd-input" placeholder="••••••••" />
+    <button class="primary" style="width:100%" onclick="doLogin()">Ingresar</button>
+    <div class="login-error hidden" id="login-error">Clave incorrecta</div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="app-header">
+    <h1>Órdenes IFA</h1>
+    <div class="app-header-actions">
+      <button id="refresh-btn" onclick="fetchOrders(true)">
+        <i class="ti ti-refresh" aria-hidden="true"></i> Actualizar ahora
+      </button>
+      <button onclick="doLogout()">
+        <i class="ti ti-logout" aria-hidden="true"></i> Salir
+      </button>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">Conectado · filtrando OrdenesIFA@balanz.com</span>
+    <span class="next-refresh" id="next-refresh"></span>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active" id="tab-active" onclick="switchTab('active')">
+      Activas <span class="counter-badge" id="count-active">0</span>
+    </div>
+    <div class="tab" id="tab-history" onclick="switchTab('history')">
+      Historial <span class="counter-badge neutral" id="count-history">0</span>
+    </div>
+  </div>
+
+  <div id="view-active">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:160px">Comitente</th>
+            <th style="width:70px">Ticker</th>
+            <th style="width:80px">Acción</th>
+            <th style="width:90px">Precio</th>
+            <th style="width:65px">Plazo</th>
+            <th style="width:140px">Monto / Cant.</th>
+            <th style="width:110px">Color</th>
+            <th style="width:80px">Operada</th>
+          </tr>
+        </thead>
+        <tbody id="orders-body">
+          <tr><td colspan="8" class="empty-state"><i class="ti ti-loader" aria-hidden="true"></i>Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="view-history" class="hidden">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:160px">Comitente</th>
+            <th style="width:70px">Ticker</th>
+            <th style="width:80px">Acción</th>
+            <th style="width:90px">Precio</th>
+            <th style="width:65px">Plazo</th>
+            <th style="width:140px">Monto / Cant.</th>
+            <th style="width:120px">Operada el</th>
+          </tr>
+        </thead>
+        <tbody id="history-body">
+          <tr><td colspan="7" class="empty-state"><i class="ti ti-archive" aria-hidden="true"></i>Sin historial aún</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const PASSWORD = 'Colapinto';
+const COLORS = ['#EAF3DE','#E6F1FB','#FAEEDA','#FCEBEB','#EEEDFE','#E1F5EE','#FBEAF0'];
+const COLOR_LABELS = ['Verde','Azul','Amarillo','Rojo','Violeta','Teal','Rosa'];
+const REFRESH_INTERVAL = 5 * 60 * 1000;
+
+let orders = [];
+let history = [];
+let refreshTimer = null;
+let countdownTimer = null;
+let nextRefreshAt = null;
+
+function doLogin() {
+  const v = document.getElementById('pwd-input').value;
+  if (v === PASSWORD) {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    loadFromStorage().then(() => { fetchOrders(true); startAutoRefresh(); });
+  } else {
+    document.getElementById('login-error').classList.remove('hidden');
+  }
+}
+document.getElementById('pwd-input').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function doLogout() {
+  stopAutoRefresh();
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('pwd-input').value = '';
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  nextRefreshAt = Date.now() + REFRESH_INTERVAL;
+  refreshTimer = setInterval(() => { fetchOrders(false); nextRefreshAt = Date.now() + REFRESH_INTERVAL; }, REFRESH_INTERVAL);
+  countdownTimer = setInterval(updateCountdown, 1000);
+}
+
+function stopAutoRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  if (countdownTimer) clearInterval(countdownTimer);
+}
+
+function updateCountdown() {
+  const el = document.getElementById('next-refresh');
+  if (!nextRefreshAt) { el.textContent = ''; return; }
+  const sec = Math.max(0, Math.round((nextRefreshAt - Date.now()) / 1000));
+  const m = Math.floor(sec / 60), s = sec % 60;
+  el.textContent = `Próxima actualización en ${m}:${String(s).padStart(2, '0')}`;
+}
+
+function switchTab(t) {
+  document.getElementById('tab-active').classList.toggle('active', t === 'active');
+  document.getElementById('tab-history').classList.toggle('active', t === 'history');
+  document.getElementById('view-active').classList.toggle('hidden', t !== 'active');
+  document.getElementById('view-history').classList.toggle('hidden', t !== 'history');
+}
+
+function getStorage(key) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch(e) { return null; }
+}
+function setStorage(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+}
+
+async function loadFromStorage() {
+  orders = getStorage('ifa-orders') || [];
+  history = getStorage('ifa-history') || [];
+  renderOrders();
+  renderHistory();
+}
+
+function saveOrders() { setStorage('ifa-orders', orders); }
+function saveHistory() { setStorage('ifa-history', history); }
+
+function setStatus(loading, text) {
+  document.getElementById('status-dot').className = 'status-dot' + (loading ? ' loading' : '');
+  document.getElementById('status-text').textContent = text;
+}
+
+async function fetchOrders(manual) {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true;
+  setStatus(true, 'Buscando mails nuevos en OrdenesIFA@balanz.com...');
+
+  try {
+    const emailText = await getOrderEmails();
+    if (!emailText || emailText.trim().length < 10) {
+      setStatus(false, 'Sin mails nuevos · ' + fmtNow());
+      renderOrders();
+      btn.disabled = false;
+      return;
+    }
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        system: `Sos un extractor de órdenes financieras. Recibirás el cuerpo de emails de órdenes bursátiles enviados a OrdenesIFA@balanz.com.
+Extraé TODAS las órdenes y devolvé SOLO un JSON array sin markdown ni texto extra.
+Cada orden debe tener exactamente estos campos:
+- comitente: string (nombre completo y/o número de comitente)
+- ticker: string (símbolo del activo, ej: VIST, NU, MA)
+- accion: "Comprar" o "Vender"
+- precio: string (ej: "Mercado" o valor numérico)
+- plazo: string (ej: "24 hs", "48 hs")
+- montoOCantidad: string (ej: "44 unidades", "50% producido", "ARS 100.000")
+Si no hay órdenes válidas devolvé [].`,
+        messages: [{ role: 'user', content: emailText }]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content.map(c => c.text || '').join('');
+    let parsed = [];
+    try { parsed = JSON.parse(text.replace(/```json|```/g, '')); } catch(e) {}
+
+    let newCount = 0;
+    for (const o of parsed) {
+      const key = o.ticker + '|' + o.accion + '|' + o.comitente + '|' + o.montoOCantidad;
+      const inActive = orders.some(x => (x.ticker+'|'+x.accion+'|'+x.comitente+'|'+x.montoOCantidad) === key);
+      const inHistory = history.some(x => (x.ticker+'|'+x.accion+'|'+x.comitente+'|'+x.montoOCantidad) === key);
+      if (!inActive && !inHistory) {
+        orders.push({ ...o, id: 'ord-' + Date.now() + '-' + Math.random().toString(36).slice(2,6), color: null, receivedAt: new Date().toISOString() });
+        newCount++;
+      }
+    }
+    if (newCount > 0) saveOrders();
+    setStatus(false, `Última actualización: ${fmtNow()} · ${newCount > 0 ? newCount + ' nuevas' : 'sin cambios'}`);
+  } catch(e) {
+    setStatus(false, 'Error al conectar · ' + fmtNow());
+  }
+
+  renderOrders();
+  btn.disabled = false;
+  if (manual) nextRefreshAt = Date.now() + REFRESH_INTERVAL;
+}
+
+async function getOrderEmails() {
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 3000,
+        mcp_servers: [{ "type": "url", "url": "https://microsoft365.mcp.claude.com/mcp", "name": "microsoft365" }],
+        system: `Buscá los últimos 20 emails en la casilla shortiguera@balanz.com que hayan sido enviados a OrdenesIFA@balanz.com o que en el cuerpo mencionen órdenes de compra o venta de activos financieros.
+Devolvé SOLO el texto plano del cuerpo de esos emails concatenados, separados por ---MAIL---.
+Incluí el nombre/número de comitente si aparece en el asunto o cuerpo.
+Sin explicaciones ni texto adicional.`,
+        messages: [{ role: 'user', content: 'Dame el texto de los últimos emails de órdenes financieras dirigidos a OrdenesIFA@balanz.com' }]
+      })
+    });
+    const data = await resp.json();
+    return data.content.filter(c => c.type === 'text').map(c => c.text).join('\n');
+  } catch(e) { return ''; }
+}
+
+function setColor(id, color) {
+  const o = orders.find(x => x.id === id);
+  if (o) { o.color = color; saveOrders(); renderOrders(); }
+}
+
+function markDone(id) {
+  const idx = orders.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  const o = orders.splice(idx, 1)[0];
+  o.doneAt = new Date().toISOString();
+  history.unshift(o);
+  saveOrders();
+  saveHistory();
+  renderOrders();
+  renderHistory();
+}
+
+function fmtNow() {
+  return new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function renderOrders() {
+  const tbody = document.getElementById('orders-body');
+  document.getElementById('count-active').textContent = orders.length;
+  if (orders.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><i class="ti ti-inbox" aria-hidden="true"></i>Sin órdenes activas</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = orders.map(o => {
+    const bg = o.color ? `background:${o.color}` : '';
+    const colorPicker = `<div class="color-picker-wrap">${COLORS.map((c,i) => `<span class="color-opt${o.color===c?' selected':''}" style="background:${c}" title="${COLOR_LABELS[i]}" onclick="setColor('${o.id}','${c}')"></span>`).join('')}</div>`;
+    return `<tr style="${bg}">
+      <td style="font-size:12px">${o.comitente||'-'}</td>
+      <td><strong>${o.ticker||'-'}</strong></td>
+      <td><span class="${o.accion==='Comprar'?'badge-buy':'badge-sell'}">${o.accion||'-'}</span></td>
+      <td>${o.precio||'-'}</td>
+      <td>${o.plazo||'-'}</td>
+      <td style="font-size:12px">${o.montoOCantidad||'-'}</td>
+      <td>${colorPicker}</td>
+      <td style="text-align:center"><button class="done-btn" onclick="markDone('${o.id}')" aria-label="Marcar como operada"><i class="ti ti-check" aria-hidden="true"></i></button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderHistory() {
+  const tbody = document.getElementById('history-body');
+  document.getElementById('count-history').textContent = history.length;
+  if (history.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><i class="ti ti-archive" aria-hidden="true"></i>Sin historial aún</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = history.map(o => `<tr>
+    <td style="font-size:12px">${o.comitente||'-'}</td>
+    <td><strong>${o.ticker||'-'}</strong></td>
+    <td><span class="${o.accion==='Comprar'?'badge-buy':'badge-sell'}">${o.accion||'-'}</span></td>
+    <td>${o.precio||'-'}</td>
+    <td>${o.plazo||'-'}</td>
+    <td style="font-size:12px">${o.montoOCantidad||'-'}</td>
+    <td class="hist-time">${fmtDate(o.doneAt)}</td>
+  </tr>`).join('');
+}
+</script>
+</body>
+</html>
