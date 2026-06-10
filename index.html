@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Órdenes IFA — Balanz</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #ffffff; --bg2: #f5f5f3; --bg3: #efefec;
+      --text: #1a1a18; --text2: #6b6b67; --text3: #9b9b97;
+      --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+      --danger-bg: #FCEBEB; --danger-text: #A32D2D;
+      --success-bg: #EAF3DE; --success-text: #3B6D11;
+      --radius: 8px; --radius-lg: 12px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; color: var(--text); background: var(--bg3); min-height: 100vh; }
+    .hidden { display: none !important; }
+
+    #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .login-box { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; width: 300px; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.07); }
+    .login-box h1 { font-size: 20px; font-weight: 500; margin-bottom: 6px; }
+    .login-box p { font-size: 13px; color: var(--text2); margin-bottom: 1.5rem; }
+    .login-box input { width: 100%; padding: 10px 12px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 15px; text-align: center; letter-spacing: 3px; margin-bottom: 10px; outline: none; }
+    .login-box input:focus { box-shadow: 0 0 0 3px rgba(99,153,34,0.2); border-color: #639922; }
+    .login-error { font-size: 12px; color: var(--danger-text); margin-top: 6px; }
+
+    #app { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+    .app-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 0.5px solid var(--border); }
+    .app-header h1 { font-size: 20px; font-weight: 500; }
+    .app-header-actions { display: flex; gap: 8px; align-items: center; }
+
+    .status-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 1.5rem; padding: 8px 12px; background: var(--bg2); border-radius: var(--radius); font-size: 12px; color: var(--text2); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #639922; display: inline-block; flex-shrink: 0; }
+    .status-dot.loading { background: #BA7517; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .next-refresh { margin-left: auto; font-size: 11px; color: var(--text3); }
+
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 1.5rem; }
+    .tab { padding: 6px 16px; border-radius: var(--radius); font-size: 13px; cursor: pointer; border: 0.5px solid transparent; color: var(--text2); background: transparent; transition: all .15s; }
+    .tab.active { background: var(--bg2); border-color: var(--border); color: var(--text); font-weight: 500; }
+    .counter-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 9px; background: var(--danger-bg); color: var(--danger-text); font-size: 11px; font-weight: 600; padding: 0 5px; margin-left: 6px; }
+    .counter-badge.neutral { background: var(--bg2); color: var(--text2); }
+
+    .table-wrap { overflow-x: auto; background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 800px; }
+    th { font-size: 11px; font-weight: 500; color: var(--text2); text-align: left; padding: 10px 12px; border-bottom: 0.5px solid var(--border); text-transform: uppercase; letter-spacing: .5px; background: var(--bg2); }
+    td { padding: 10px 12px; border-bottom: 0.5px solid var(--border); font-size: 13px; vertical-align: middle; color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+
+    .badge-buy { background: var(--success-bg); color: var(--success-text); padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .badge-sell { background: var(--danger-bg); color: var(--danger-text); padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+    .color-picker-wrap { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+    .color-opt { width: 18px; height: 18px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; display: inline-block; transition: transform .1s; flex-shrink: 0; }
+    .color-opt:hover { transform: scale(1.25); }
+    .color-opt.selected { border-color: #333; }
+
+    .done-btn { padding: 5px 12px; font-size: 12px; cursor: pointer; border-radius: var(--radius); border: 0.5px solid var(--border2); background: transparent; color: var(--text); display: inline-flex; align-items: center; gap: 4px; transition: all .15s; }
+    .done-btn:hover { background: var(--success-bg); color: var(--success-text); border-color: #639922; }
+
+    button { padding: 7px 14px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; transition: all .15s; }
+    button:hover { background: var(--bg2); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+    button.primary:hover { opacity: .85; }
+
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text2); font-size: 13px; }
+    .empty-state i { font-size: 36px; display: block; margin-bottom: 10px; color: var(--text3); }
+    .hist-time { font-size: 11px; color: var(--text3); }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--text2); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <i class="ti ti-building-bank" style="font-size:32px;color:#639922;display:block;margin-bottom:12px"></i>
+    <h1>Órdenes IFA</h1>
+    <p>Ingresá la clave de acceso</p>
+    <input type="password" id="pwd-input" placeholder="••••••••" />
+    <button class="primary" style="width:100%;justify-content:center" onclick="doLogin()">Ingresar</button>
+    <div class="login-error hidden" id="login-error">Clave incorrecta</div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="app-header">
+    <h1>Órdenes IFA</h1>
+    <div class="app-header-actions">
+      <button id="refresh-btn" onclick="fetchOrders(true)">
+        <i class="ti ti-refresh"></i> Actualizar ahora
+      </button>
+      <button onclick="doLogout()">
+        <i class="ti ti-logout"></i> Salir
+      </button>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">Conectando con Monday.com...</span>
+    <span class="next-refresh" id="next-refresh"></span>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active" id="tab-active" onclick="switchTab('active')">
+      Activas <span class="counter-badge" id="count-active">0</span>
+    </div>
+    <div class="tab" id="tab-history" onclick="switchTab('history')">
+      Historial <span class="counter-badge neutral" id="count-history">0</span>
+    </div>
+  </div>
+
+  <div id="view-active">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:160px">Comitente</th>
+            <th style="width:70px">Ticker</th>
+            <th style="width:80px">Acción</th>
+            <th style="width:90px">Precio</th>
+            <th style="width:65px">Plazo</th>
+            <th style="width:130px">Monto / Cant.</th>
+            <th style="width:120px">Color</th>
+            <th style="width:80px">Operada</th>
+          </tr>
+        </thead>
+        <tbody id="orders-body">
+          <tr><td colspan="8" class="empty-state"><div class="spinner"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="view-history" class="hidden">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:160px">Comitente</th>
+            <th style="width:70px">Ticker</th>
+            <th style="width:80px">Acción</th>
+            <th style="width:90px">Precio</th>
+            <th style="width:65px">Plazo</th>
+            <th style="width:130px">Monto / Cant.</th>
+            <th style="width:120px">Operada el</th>
+          </tr>
+        </thead>
+        <tbody id="history-body">
+          <tr><td colspan="7" class="empty-state"><i class="ti ti-archive"></i>Sin historial aún</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const PASSWORD = 'Colapinto';
+const MONDAY_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjY2ODk0MTU2NywiYWFpIjoxMSwidWlkIjoxMDUxODE0MjMsImlhZCI6IjIwMjYtMDYtMDlUMTg6MTE6MTguODAwWiIsInBlciI6Im1lOndyaXRlIiwiYWN0aWQiOjM1NTI5NTA0LCJyZ24iOiJ1c2UxIn0.8KQD48tnyMT35QC3bC_pCoGoCC2CBTHO_06XwLmagj0';
+const BOARD_ID = '18417041345';
+const ANTHROPIC_KEY_PLACEHOLDER = 'ANTHROPIC_API_KEY';
+const REFRESH_INTERVAL = 5 * 60 * 1000;
+const COLORS = ['#EAF3DE','#E6F1FB','#FAEEDA','#FCEBEB','#EEEDFE','#E1F5EE','#FBEAF0'];
+const COLOR_LABELS = ['Verde','Azul','Amarillo','Rojo','Violeta','Teal','Rosa'];
+
+let refreshTimer = null;
+let countdownTimer = null;
+let nextRefreshAt = null;
+
+function doLogin() {
+  const v = document.getElementById('pwd-input').value;
+  if (v === PASSWORD) {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    fetchOrders(true);
+    startAutoRefresh();
+  } else {
+    document.getElementById('login-error').classList.remove('hidden');
+  }
+}
+document.getElementById('pwd-input').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function doLogout() {
+  stopAutoRefresh();
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('pwd-input').value = '';
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  nextRefreshAt = Date.now() + REFRESH_INTERVAL;
+  refreshTimer = setInterval(() => { fetchOrders(false); nextRefreshAt = Date.now() + REFRESH_INTERVAL; }, REFRESH_INTERVAL);
+  countdownTimer = setInterval(updateCountdown, 1000);
+}
+function stopAutoRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  if (countdownTimer) clearInterval(countdownTimer);
+}
+function updateCountdown() {
+  const el = document.getElementById('next-refresh');
+  if (!nextRefreshAt) { el.textContent = ''; return; }
+  const sec = Math.max(0, Math.round((nextRefreshAt - Date.now()) / 1000));
+  const m = Math.floor(sec / 60), s = sec % 60;
+  el.textContent = `Próxima actualización en ${m}:${String(s).padStart(2, '0')}`;
+}
+
+function switchTab(t) {
+  document.getElementById('tab-active').classList.toggle('active', t === 'active');
+  document.getElementById('tab-history').classList.toggle('active', t === 'history');
+  document.getElementById('view-active').classList.toggle('hidden', t !== 'active');
+  document.getElementById('view-history').classList.toggle('hidden', t !== 'history');
+}
+
+function setStatus(loading, text) {
+  document.getElementById('status-dot').className = 'status-dot' + (loading ? ' loading' : '');
+  document.getElementById('status-text').textContent = text;
+}
+
+async function mondayQuery(query, variables = {}) {
+  const resp = await fetch('https://api.monday.com/v2', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': MONDAY_TOKEN, 'API-Version': '2024-01' },
+    body: JSON.stringify({ query, variables })
+  });
+  return resp.json();
+}
+
+async function fetchOrders(manual) {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true;
+  setStatus(true, 'Buscando mails nuevos y actualizando tablero...');
+
+  try {
+    // 1 - Leer emails nuevos de Outlook via Anthropic
+    await processNewEmails();
+  } catch(e) {
+    console.error('Error procesando emails:', e);
+  }
+
+  // 2 - Leer órdenes activas de Monday
+  await loadActiveOrders();
+  // 3 - Leer historial de Monday
+  await loadHistory();
+
+  setStatus(false, `Última actualización: ${fmtNow()}`);
+  btn.disabled = false;
+  if (manual) nextRefreshAt = Date.now() + REFRESH_INTERVAL;
+}
+
+async function processNewEmails() {
+  // Llamar a Anthropic para leer emails y extraer órdenes
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 3000,
+      mcp_servers: [{ type: 'url', url: 'https://microsoft365.mcp.claude.com/mcp', name: 'microsoft365' }],
+      system: `Buscá los últimos 10 emails en la casilla shortiguera@balanz.com que contengan órdenes de compra o venta de activos financieros (de OrdenesIFA@balanz.com o similar).
+Para cada email encontrado, extraé las órdenes y devolvé SOLO un JSON array sin markdown.
+Cada orden: { comitente, ticker, accion ("Comprar"/"Vender"), precio, plazo, montoOCantidad }
+Si no hay órdenes devolvé [].`,
+      messages: [{ role: 'user', content: 'Extraé las órdenes de los últimos emails de shortiguera@balanz.com' }]
+    })
+  });
+  const data = await resp.json();
+  const text = data.content.filter(c => c.type === 'text').map(c => c.text).join('');
+  let orders = [];
+  try { orders = JSON.parse(text.replace(/```json|```/g, '').trim()); } catch(e) { return; }
+  if (!orders.length) return;
+
+  // Verificar cuáles ya existen en Monday para no duplicar
+  const existing = await mondayQuery(`query { boards(ids: [${BOARD_ID}]) { items_page(limit: 100) { items { name column_values { id text } } } } }`);
+  const existingItems = existing?.data?.boards?.[0]?.items_page?.items || [];
+
+  for (const o of orders) {
+    const key = `${o.ticker}|${o.accion}|${o.comitente}`;
+    const alreadyExists = existingItems.some(item => {
+      const tickerCol = item.column_values.find(c => c.id === 'text' || c.id === 'ticker');
+      return item.name === o.comitente && tickerCol?.text === o.ticker;
+    });
+    if (alreadyExists) continue;
+
+    // Crear ítem en Monday
+    const colVals = JSON.stringify({
+      "text": o.ticker,
+      "text1": o.accion,
+      "text2": o.precio,
+      "text3": o.plazo,
+      "text4": o.montoOCantidad,
+      "text5": "",
+      "text6": new Date().toISOString(),
+      "text7": "activa"
+    }).replace(/"/g, '\\"');
+
+    await mondayQuery(`mutation { create_item(board_id: ${BOARD_ID}, item_name: "${o.comitente.replace(/"/g,'')}", column_values: "${colVals}") { id } }`);
+  }
+}
+
+async function loadActiveOrders() {
+  const result = await mondayQuery(`query {
+    boards(ids: [${BOARD_ID}]) {
+      items_page(limit: 100) {
+        items {
+          id name
+          column_values { id title text }
+          group { id title }
+        }
+      }
+    }
+  }`);
+
+  const items = result?.data?.boards?.[0]?.items_page?.items || [];
+  const active = items.filter(i => {
+    const estado = i.column_values.find(c => c.title === 'Estado' || c.id === 'status');
+    return i.group?.title !== 'Completado' && estado?.text !== 'operada';
+  });
+
+  document.getElementById('count-active').textContent = active.length;
+  const tbody = document.getElementById('orders-body');
+  if (!active.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><i class="ti ti-inbox"></i>Sin órdenes activas</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = active.map(item => {
+    const cols = {};
+    item.column_values.forEach(c => { cols[c.title?.toLowerCase()] = c.text; cols[c.id] = c.text; });
+    const ticker = cols['ticker'] || cols['text'] || '';
+    const accion = cols['accion'] || cols['text1'] || '';
+    const precio = cols['precio'] || cols['text2'] || '';
+    const plazo = cols['plazo'] || cols['text3'] || '';
+    const monto = cols['montoo cantidad'] || cols['montoocantidad'] || cols['text4'] || '';
+    const color = cols['color'] || cols['text5'] || '';
+    const bg = color ? `background:${color}` : '';
+    const colorPicker = `<div class="color-picker-wrap">${COLORS.map((c,i) => `<span class="color-opt${color===c?' selected':''}" style="background:${c}" title="${COLOR_LABELS[i]}" onclick="setColor('${item.id}','${c}')"></span>`).join('')}</div>`;
+    return `<tr style="${bg}">
+      <td style="font-size:12px">${item.name||'-'}</td>
+      <td><strong>${ticker||'-'}</strong></td>
+      <td><span class="${accion==='Comprar'?'badge-buy':'badge-sell'}">${accion||'-'}</span></td>
+      <td>${precio||'-'}</td>
+      <td>${plazo||'-'}</td>
+      <td style="font-size:12px">${monto||'-'}</td>
+      <td>${colorPicker}</td>
+      <td style="text-align:center"><button class="done-btn" onclick="markDone('${item.id}')"><i class="ti ti-check"></i></button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadHistory() {
+  const result = await mondayQuery(`query {
+    boards(ids: [${BOARD_ID}]) {
+      groups { id title }
+      items_page(limit: 100) {
+        items {
+          id name
+          column_values { id title text }
+          group { id title }
+        }
+      }
+    }
+  }`);
+
+  const items = result?.data?.boards?.[0]?.items_page?.items || [];
+  const done = items.filter(i => i.group?.title === 'Completado');
+
+  document.getElementById('count-history').textContent = done.length;
+  const tbody = document.getElementById('history-body');
+  if (!done.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><i class="ti ti-archive"></i>Sin historial aún</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = done.map(item => {
+    const cols = {};
+    item.column_values.forEach(c => { cols[c.title?.toLowerCase()] = c.text; cols[c.id] = c.text; });
+    const ticker = cols['ticker'] || cols['text'] || '';
+    const accion = cols['accion'] || cols['text1'] || '';
+    const precio = cols['precio'] || cols['text2'] || '';
+    const plazo = cols['plazo'] || cols['text3'] || '';
+    const monto = cols['montoo cantidad'] || cols['montoocantidad'] || cols['text4'] || '';
+    const fechaOp = cols['fechaoperada'] || cols['text7'] || '';
+    return `<tr>
+      <td style="font-size:12px">${item.name||'-'}</td>
+      <td><strong>${ticker||'-'}</strong></td>
+      <td><span class="${accion==='Comprar'?'badge-buy':'badge-sell'}">${accion||'-'}</span></td>
+      <td>${precio||'-'}</td>
+      <td>${plazo||'-'}</td>
+      <td style="font-size:12px">${monto||'-'}</td>
+      <td class="hist-time">${fechaOp ? fmtDate(fechaOp) : '-'}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function setColor(itemId, color) {
+  // Buscar el ID de la columna Color
+  await mondayQuery(`mutation { change_simple_column_value(board_id: ${BOARD_ID}, item_id: ${itemId}, column_id: "text5", value: "${color}") { id } }`);
+  await loadActiveOrders();
+}
+
+async function markDone(itemId) {
+  // Mover a grupo Completado y guardar fecha
+  const result = await mondayQuery(`query { boards(ids: [${BOARD_ID}]) { groups { id title } } }`);
+  const groups = result?.data?.boards?.[0]?.groups || [];
+  const doneGroup = groups.find(g => g.title === 'Completado');
+  if (doneGroup) {
+    await mondayQuery(`mutation { move_item_to_group(item_id: ${itemId}, group_id: "${doneGroup.id}") { id } }`);
+    await mondayQuery(`mutation { change_simple_column_value(board_id: ${BOARD_ID}, item_id: ${itemId}, column_id: "text7", value: "${new Date().toISOString()}") { id } }`);
+  }
+  await loadActiveOrders();
+  await loadHistory();
+}
+
+function fmtNow() {
+  return new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  } catch(e) { return iso; }
+}
+</script>
+</body>
+</html>
